@@ -9,5 +9,5 @@ An economic data visualization and analysis platform focusing on the Middle East
 - **Comparisons:** Compare data across multiple countries or multiple indicators seamlessly.
 
 ## Tech Stack
-- **Backend:** Python, Django, Django REST Framework, SQLite
+- **Backend:** Python, Django, Django REST Framework, PostgreSQL
 - **Frontend:** React, Vite, TypeScript, Tailwind CSS, Chart.js / Recharts
