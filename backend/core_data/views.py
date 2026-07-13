@@ -1,4 +1,4 @@
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -10,7 +10,7 @@ class CountryListView(ListAPIView):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
 
-class CountryDetailView(ListAPIView):
+class CountryDetailView(RetrieveAPIView):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
     lookup_field = 'iso3_code'
@@ -19,7 +19,7 @@ class IndicatorListView(ListAPIView):
     queryset = Indicator.objects.all()
     serializer_class = IndicatorSerializer
 
-class IndicatorDetailView(ListAPIView):
+class IndicatorDetailView(RetrieveAPIView):
     queryset = Indicator.objects.all()
     serializer_class = IndicatorSerializer
     lookup_field = 'code'
