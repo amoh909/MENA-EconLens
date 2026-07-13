@@ -81,10 +81,6 @@ class Command(BaseCommand):
                     year_str = datum.get("date") or datum.get("year")
                     value = datum.get("value")
 
-                    # 👇 ADD THIS TEMPORARY PRINT TO DEBUG 👇
-                    print(f"DEBUG: year={year_str}, value={value}, start_year={start_year}")
-
-                    # If there's no year or no actual value data, skip it
                     if not year_str or value is None:
                         total_skipped += 1
                         continue
