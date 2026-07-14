@@ -96,13 +96,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         for country in COUNTRIES:
-            Country.objects.get_or_create(
+            Country.objects.update_or_create(
                 iso3_code=country["iso3_code"],
                 defaults={**country, "region": "MENA"},
             )
 
         for indicator in INDICATORS:
-            Indicator.objects.get_or_create(
+            Indicator.objects.update_or_create(
                 code=indicator["code"],
                 defaults=indicator,
             )
