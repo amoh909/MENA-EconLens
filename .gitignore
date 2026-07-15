@@ -30,3 +30,4 @@ node_modules/
 
 # Other
 *.txt
+!backend/requirements.txt

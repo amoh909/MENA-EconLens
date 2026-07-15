@@ -1,124 +1,527 @@
+import axios from "axios";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+import {
+  getDataSeries,
+  getIndicators,
+  getTrendAnalysis,
+} from "../api/econApi";
+
+import EconomicLineChart from "../Components/EconomicLineChart";
+import MetricCard from "../Components/MetricCard";
+
+import type {
+  DataSeriesResponse,
+  Indicator,
+  TrendAnalysisResponse,
+  TrendDirection,
+  VolatilityLevel,
+} from "../types/economy";
+
+import {
+  formatEconomicValue,
+  formatSignedValue,
+} from "../utils/formatters";
+
+
+const COUNTRY_CODE = "LBN";
+const DEFAULT_INDICATOR_CODE = "FP.CPI.TOTL.ZG";
+
+
+function getTrendClassName(
+  trend: TrendDirection,
+): string {
+  switch (trend) {
+    case "increasing":
+      return "text-emerald-400";
+
+    case "decreasing":
+      return "text-rose-400";
+
+    default:
+      return "text-slate-300";
+  }
+}
+
+
+function getVolatilityClassName(
+  volatility: VolatilityLevel,
+): string {
+  switch (volatility) {
+    case "high":
+      return "text-rose-400";
+
+    case "moderate":
+      return "text-amber-400";
+
+    default:
+      return "text-emerald-400";
+  }
+}
+
+
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const backendMessage = error.response?.data?.detail;
+
+    if (typeof backendMessage === "string") {
+      return backendMessage;
+    }
+
+    if (error.code === "ECONNABORTED") {
+      return "The request timed out. Confirm that the Django server is running.";
+    }
+
+    if (!error.response) {
+      return "Could not connect to the Django API. Confirm that it is running on port 8000.";
+    }
+
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "An unexpected error occurred.";
+}
+
+
 export default function Dashboard() {
+  const [indicators, setIndicators] = useState<Indicator[]>([]);
+  const [selectedIndicatorCode, setSelectedIndicatorCode] =
+    useState(DEFAULT_INDICATOR_CODE);
+
+  const [analysisWindow, setAnalysisWindow] = useState(10);
+
+  const [series, setSeries] =
+    useState<DataSeriesResponse | null>(null);
+
+  const [trendResponse, setTrendResponse] =
+    useState<TrendAnalysisResponse | null>(null);
+
+  const [isLoadingIndicators, setIsLoadingIndicators] =
+    useState(true);
+
+  const [isLoadingDashboard, setIsLoadingDashboard] =
+    useState(true);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadIndicators() {
+      try {
+        setIsLoadingIndicators(true);
+
+        const result = await getIndicators();
+
+        if (!cancelled) {
+          setIndicators(result);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setError(getErrorMessage(requestError));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingIndicators(false);
+        }
+      }
+    }
+
+    void loadIndicators();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      try {
+        setIsLoadingDashboard(true);
+        setError(null);
+
+        const [
+          seriesResult,
+          trendResult,
+        ] = await Promise.all([
+          getDataSeries(
+            COUNTRY_CODE,
+            selectedIndicatorCode,
+          ),
+          getTrendAnalysis(
+            COUNTRY_CODE,
+            selectedIndicatorCode,
+            analysisWindow,
+          ),
+        ]);
+
+        if (!cancelled) {
+          setSeries(seriesResult);
+          setTrendResponse(trendResult);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setSeries(null);
+          setTrendResponse(null);
+          setError(getErrorMessage(requestError));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingDashboard(false);
+        }
+      }
+    }
+
+    void loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedIndicatorCode,
+    analysisWindow,
+  ]);
+
+
+  const selectedIndicator = useMemo(
+    () =>
+      indicators.find(
+        (indicator) =>
+          indicator.code === selectedIndicatorCode,
+      ) ?? null,
+    [
+      indicators,
+      selectedIndicatorCode,
+    ],
+  );
+
+
+  const visibleSeries = useMemo(() => {
+    if (!series) {
+      return [];
+    }
+
+    return series.data.filter(
+      (point) => point.year >= 2000,
+    );
+  }, [series]);
+
+
+  const analysis = trendResponse?.analysis;
+  const unit =
+    trendResponse?.indicator.unit ??
+    selectedIndicator?.unit ??
+    "";
+
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 space-y-6">
-      
-      {/* 1. Country Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-900 pb-5 gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-blue-400 font-semibold tracking-wider uppercase mb-1">
-            <span>MENA Region</span> &bull; <span>Core Overview</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Lebanon Economic Dashboard</h1>
-        </div>
-        <Link
-          to="/"
-          className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-lg text-sm transition-colors"
-        >
-          &larr; Back to Home
-        </Link>
-      </header>
+    <div className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6">
+      <div className="mx-auto max-w-7xl space-y-6">
 
-      {/* 2. Key Indicators Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { title: "GDP Growth Rate", value: "-0.2%", status: "Negative", color: "text-rose-400" },
-          { title: "Inflation Rate (CPI)", value: "37.4%", status: "High Risk", color: "text-amber-400" },
-          { title: "Unemployment Rate", value: "29.6%", status: "Stable", color: "text-slate-400" },
-          { title: "Trade Balance", value: "-$1.2B", status: "Deficit", color: "text-rose-400" },
-        ].map((card, idx) => (
-          <div key={idx} className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-2">
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">{card.title}</p>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">{card.value}</span>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full bg-slate-950 ${card.color}`}>
-                {card.status}
-              </span>
+        <header className="flex flex-col gap-4 border-b border-slate-900 pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400">
+              <span>MENA Region</span>
+              <span>•</span>
+              <span>Live World Bank Data</span>
             </div>
-          </div>
-        ))}
-      </section>
 
-      {/* Layout Grid for Main Chart, Forecast & Summaries */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* 3. Main Chart Placeholder & Trend Summary */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Main Chart Box */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Macroeconomic Trend Analysis</h2>
-              <span className="text-xs text-slate-500">Historical Data (2015 - 2026)</span>
-            </div>
-            {/* Visual Placeholder Box for Chart Library (Recharts / Chart.js) */}
-            <div className="h-64 w-full bg-slate-950 border border-dashed border-slate-800 rounded-lg flex flex-col items-center justify-center text-slate-500">
-              <svg className="w-8 h-8 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21h8a2 2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              <p className="text-sm font-medium">[ Interactive Timeseries Line / Bar Chart ]</p>
-              <p className="text-xs text-slate-600 mt-1">Ready for integration with your Recharts implementation</p>
-            </div>
-          </div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-100">
+              Lebanon Economic Dashboard
+            </h1>
 
-          {/* 4. Trend Summary */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-3">
-            <h2 className="text-lg font-semibold">Trend Summary</h2>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Recent multi-sector analysis reveals sustained fiscal compression across central metrics. 
-              While the structural adjustments stabilize baseline operational margins, macroeconomic indices 
-              remain susceptible to fluctuating trade flows and regional systemic dependencies.
+            <p className="mt-2 max-w-2xl text-sm text-slate-400">
+              Explore historical indicators and automated trend
+              analysis using data stored by the EconLens Django API.
             </p>
           </div>
-        </div>
 
-        {/* Right Sidebar: Forecast Panel & Related Indicators */}
-        <div className="space-y-6">
-          
-          {/* 5. Forecast Panel */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-            <h2 className="text-lg font-semibold">Forecast Panel</h2>
-            <p className="text-xs text-slate-500">Projected trends for Q3 & Q4 based on baseline algorithms.</p>
-            
-            <div className="space-y-3 pt-2">
-              {[
-                { metric: "GDP Expansion Spec", trajectory: "+0.4%", indicator: "bg-emerald-500" },
-                { metric: "Fiscal Variance Rate", trajectory: "-1.1%", indicator: "bg-rose-500" },
-                { metric: "Debt Service Multiplier", trajectory: "Stable", indicator: "bg-slate-500" },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-900">
-                  <span className="text-sm font-medium text-slate-300">{item.metric}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-200">{item.trajectory}</span>
-                    <span className={`w-2 h-2 rounded-full ${item.indicator}`} />
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/compare"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+            >
+              Compare countries
+            </Link>
+
+            <Link
+              to="/"
+              className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-slate-700"
+            >
+              Back home
+            </Link>
           </div>
+        </header>
 
-          {/* 6. Related Indicators Links */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-3">
-            <h2 className="text-lg font-semibold">Related Indicators</h2>
-            <div className="flex flex-col gap-2">
-              {[
-                { name: "Foreign Direct Investment (FDI)", path: "/indicators" },
-                { name: "Central Bank Reserves Index", path: "/indicators" },
-                { name: "Consumer Confidence Multiplier", path: "/indicators" },
-              ].map((link, idx) => (
-                <Link
-                  key={idx}
-                  to={link.path}
-                  className="text-sm text-blue-400 hover:text-blue-300 hover:underline flex items-center justify-between group"
+
+        <section className="grid gap-4 rounded-xl border border-slate-800 bg-slate-900 p-5 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Economic indicator
+            </span>
+
+            <select
+              value={selectedIndicatorCode}
+              disabled={isLoadingIndicators}
+              onChange={(event) =>
+                setSelectedIndicatorCode(
+                  event.target.value,
+                )
+              }
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500 disabled:opacity-60"
+            >
+              {indicators.map((indicator) => (
+                <option
+                  key={indicator.code}
+                  value={indicator.code}
                 >
-                  <span>{link.name}</span>
-                  <span className="transform translate-x-0 group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </Link>
+                  {indicator.name}
+                </option>
               ))}
-            </div>
-          </div>
+            </select>
+          </label>
 
-        </div>
+
+          <label className="space-y-2">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Trend-analysis window
+            </span>
+
+            <select
+              value={analysisWindow}
+              onChange={(event) =>
+                setAnalysisWindow(
+                  Number(event.target.value),
+                )
+              }
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500"
+            >
+              <option value={5}>Latest 5 observations</option>
+              <option value={10}>Latest 10 observations</option>
+              <option value={15}>Latest 15 observations</option>
+              <option value={20}>Latest 20 observations</option>
+            </select>
+          </label>
+        </section>
+
+
+        {error && (
+          <section className="rounded-xl border border-rose-900 bg-rose-950/40 p-5">
+            <h2 className="font-semibold text-rose-300">
+              Could not load dashboard
+            </h2>
+
+            <p className="mt-2 text-sm text-rose-200/80">
+              {error}
+            </p>
+          </section>
+        )}
+
+
+        {isLoadingDashboard && (
+          <section className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center">
+            <p className="text-sm text-slate-400">
+              Loading economic data and calculating trend
+              analysis...
+            </p>
+          </section>
+        )}
+
+
+        {!isLoadingDashboard && analysis && series && (
+          <>
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                label="Latest value"
+                value={formatEconomicValue(
+                  analysis.latest.value,
+                  unit,
+                )}
+                helper={`Recorded in ${analysis.latest.year}`}
+                status={analysis.trend}
+                statusClassName={getTrendClassName(
+                  analysis.trend,
+                )}
+              />
+
+              <MetricCard
+                label="Period change"
+                value={formatSignedValue(
+                  analysis.change.absolute,
+                  unit,
+                )}
+                helper={
+                  analysis.change.percentage === null
+                    ? `${analysis.period.start_year}–${analysis.period.end_year}`
+                    : `${analysis.change.percentage > 0 ? "+" : ""}${analysis.change.percentage.toFixed(2)}% relative change`
+                }
+              />
+
+              <MetricCard
+                label="Period mean"
+                value={formatEconomicValue(
+                  analysis.mean,
+                  unit,
+                )}
+                helper={`${analysis.observation_count} observations analyzed`}
+              />
+
+              <MetricCard
+                label="Volatility"
+                value={analysis.volatility.level}
+                helper={`Normalized ratio: ${analysis.volatility.ratio.toFixed(3)}`}
+                status={analysis.volatility.level}
+                statusClassName={getVolatilityClassName(
+                  analysis.volatility.level,
+                )}
+              />
+            </section>
+
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <section className="space-y-6 lg:col-span-2">
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+                  <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-100">
+                        {series.indicator}
+                      </h2>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Historical data from 2000 onward
+                        · Unit: {series.unit || "not specified"}
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-slate-500">
+                      {visibleSeries.length} available observations
+                    </p>
+                  </div>
+
+                  <EconomicLineChart
+                    data={visibleSeries}
+                    indicatorName={series.indicator}
+                    unit={series.unit}
+                  />
+                </article>
+
+
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Trend summary
+                  </h2>
+
+                  <p className="mt-3 text-sm leading-7 text-slate-400">
+                    {analysis.summary_en}
+                  </p>
+                </article>
+              </section>
+
+
+              <aside className="space-y-6">
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Observed range
+                  </h2>
+
+                  <dl className="mt-5 space-y-4">
+                    <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500">
+                        Minimum
+                      </dt>
+
+                      <dd className="mt-1 text-lg font-bold text-slate-100">
+                        {formatEconomicValue(
+                          analysis.minimum.value,
+                          unit,
+                        )}
+                      </dd>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Recorded in {analysis.minimum.year}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500">
+                        Maximum
+                      </dt>
+
+                      <dd className="mt-1 text-lg font-bold text-slate-100">
+                        {formatEconomicValue(
+                          analysis.maximum.value,
+                          unit,
+                        )}
+                      </dd>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Recorded in {analysis.maximum.year}
+                      </p>
+                    </div>
+                  </dl>
+                </article>
+
+
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Model diagnostics
+                  </h2>
+
+                  <dl className="mt-5 space-y-3 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-slate-500">
+                        Slope per year
+                      </dt>
+
+                      <dd className="font-medium text-slate-200">
+                        {analysis.linear_model.slope_per_year.toFixed(4)}
+                      </dd>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-slate-500">
+                        R²
+                      </dt>
+
+                      <dd className="font-medium text-slate-200">
+                        {analysis.linear_model.r_squared.toFixed(4)}
+                      </dd>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-slate-500">
+                        Standard deviation
+                      </dt>
+
+                      <dd className="font-medium text-slate-200">
+                        {formatEconomicValue(
+                          analysis.standard_deviation,
+                          unit,
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <p className="mt-5 border-t border-slate-800 pt-4 text-xs leading-5 text-slate-500">
+                    These statistics describe historical
+                    movement. They are not financial or
+                    economic advice.
+                  </p>
+                </article>
+              </aside>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

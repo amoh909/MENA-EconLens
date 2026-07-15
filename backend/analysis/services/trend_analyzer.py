@@ -85,9 +85,9 @@ def _classify_volatility(values: list[float]) -> tuple[str, float]:
 
 def _build_summary(*, country_name: str, indicator_name: str, unit: str, trend: str, volatility: str, start_year: int, end_year: int, latest_value: float, absolute_change: float, r_squared: float,) -> str:
     trend_phrases = {
-    "increasing": "The indicator is showing a clear upward trend over the analyzed period.",
-    "decreasing": "The indicator is showing a clear downward trend over the analyzed period.",
-    "stable": "The indicator has remained relatively stable over the analyzed period.",
+    "increasing": "an overall increasing trend",
+    "decreasing": "an overall decreasing trend",
+    "stable": "a relatively stable overall trend",
     }
     
     if r_squared >= 0.65:
@@ -115,7 +115,6 @@ def analyze_trend(points: list[dict[str, Any]], *, country_name: str, indicator_
     Expected point format:
         {"year": 2020, "value": 12.4}
     """
-    # --- FIX 1: Corrected type annotation with a colon instead of an equals sign ---
     cleaned_points: list[dict[str, float | int]] = []
 
     for point in points:
@@ -136,7 +135,6 @@ def analyze_trend(points: list[dict[str, Any]], *, country_name: str, indicator_
 
         cleaned_points.append({"year": parsed_year, "value": parsed_value})
 
-    # --- FIX 2: Shifted the calculations OUT of the for loop block ---
     cleaned_points.sort(key=lambda p: p["year"])
 
     if len(cleaned_points) < 3:
