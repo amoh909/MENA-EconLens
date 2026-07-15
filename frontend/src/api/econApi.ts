@@ -1,6 +1,8 @@
 import { api } from "./client";
 
 import type {
+  Country,
+  CountryComparisonResponse,
   DataSeriesResponse,
   Indicator,
   TrendAnalysisResponse,
@@ -37,6 +39,28 @@ export async function getTrendAnalysis(
       window,
     },
   });
+
+  return response.data;
+}
+
+export async function getCountries(): Promise<Country[]> {
+  const response = await api.get<Country[]>("/countries/");
+  return response.data;
+}
+
+export async function compareCountries(
+  countryCodes: string[],
+  indicatorCode: string,
+): Promise<CountryComparisonResponse> {
+  const response = await api.get<CountryComparisonResponse>(
+    "/compare/countries/",
+    {
+      params: {
+        countries: countryCodes.join(","),
+        indicator: indicatorCode,
+      },
+    },
+  );
 
   return response.data;
 }

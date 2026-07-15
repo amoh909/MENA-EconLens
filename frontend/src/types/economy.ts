@@ -108,3 +108,32 @@ export interface TrendAnalysisResponse {
   requested_window: number;
   analysis: TrendAnalysis;
 }
+
+export interface CountryComparisonSeries {
+  country: string;
+  iso3_code: string;
+  data: DataPoint[];
+}
+
+export interface CountryComparisonResponse {
+  indicator: string;
+  indicator_code: string;
+  unit: string;
+  series: CountryComparisonSeries[];
+}
+
+export interface ComparisonChartPoint {
+  year: number;
+  [countryName: string]: number | string | null;
+}
+
+export interface CountryComparisonStats {
+  country: string;
+  iso3_code: string;
+  latestYear: number | null;
+  latestValue: number | null;
+  minimum: number | null;
+  maximum: number | null;
+  average: number | null;
+  observationCount: number;
+}
