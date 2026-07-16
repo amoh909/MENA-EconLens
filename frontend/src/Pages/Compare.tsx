@@ -392,7 +392,7 @@ export default function Compare() {
                           >
                             <td className="py-3 pr-4 font-medium text-slate-200">
                               <Link
-                                to={`/countries/${row.iso3_code}`}
+                                to={`/countries/${row.iso3_code}?indicator=${encodeURIComponent(selectedIndicator)}`}
                                 className="transition-colors hover:text-blue-300"
                               >
                                 {row.country}

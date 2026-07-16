@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
   getCountry,
@@ -71,15 +71,18 @@ function getErrorMessage(error: unknown): string {
 
 export default function CountryDetail() {
   const { iso3Code } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const countryCode = (iso3Code ?? "LBN").toUpperCase();
+
+  const indicatorFromUrl =
+    searchParams.get("indicator") ?? DEFAULT_INDICATOR_CODE;
 
   const [country, setCountry] = useState<Country | null>(null);
   const [indicators, setIndicators] = useState<Indicator[]>([]);
 
-  const [selectedIndicatorCode, setSelectedIndicatorCode] = useState(
-    DEFAULT_INDICATOR_CODE,
-  );
+  const [selectedIndicatorCode, setSelectedIndicatorCode] =
+    useState(indicatorFromUrl);
 
   const [analysisWindow, setAnalysisWindow] = useState(10);
 
@@ -91,6 +94,10 @@ export default function CountryDetail() {
   const [isLoadingMeta, setIsLoadingMeta] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedIndicatorCode(indicatorFromUrl);
+  }, [indicatorFromUrl]);
 
   useEffect(() => {
     let cancelled = false;
@@ -304,7 +311,15 @@ export default function CountryDetail() {
             <select
               value={selectedIndicatorCode}
               disabled={isLoadingMeta}
-              onChange={(event) => setSelectedIndicatorCode(event.target.value)}
+              onChange={(event) => {
+                const nextIndicator = event.target.value;
+                const nextParams = new URLSearchParams(searchParams);
+
+                nextParams.set("indicator", nextIndicator);
+
+                setSelectedIndicatorCode(nextIndicator);
+                setSearchParams(nextParams);
+              }}
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500 disabled:opacity-60"
             >
               {indicators.map((indicator) => (
