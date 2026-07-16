@@ -2,10 +2,16 @@ import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { getDataSeries, getIndicators, getTrendAnalysis } from "../api/econApi";
+import {
+  getDataSeries,
+  getIndicators,
+  getTrendAnalysis,
+  getForecast,
+} from "../api/econApi";
 
 import EconomicLineChart from "../Components/EconomicLineChart";
 import MetricCard from "../Components/MetricCard";
+import ForecastPanel from "../Components/ForecastPanel";
 
 import type {
   DataSeriesResponse,
@@ -13,6 +19,7 @@ import type {
   TrendAnalysisResponse,
   TrendDirection,
   VolatilityLevel,
+  ForecastResponse,
 } from "../types/economy";
 
 import { formatEconomicValue, formatSignedValue } from "../utils/formatters";
@@ -91,6 +98,9 @@ export default function Dashboard() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const [forecastResponse, setForecastResponse] =
+    useState<ForecastResponse | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -129,19 +139,22 @@ export default function Dashboard() {
         setIsLoadingDashboard(true);
         setError(null);
 
-        const [seriesResult, trendResult] = await Promise.all([
+        const [seriesResult, trendResult, forecastResult] = await Promise.all([
           getDataSeries(COUNTRY_CODE, selectedIndicatorCode),
           getTrendAnalysis(COUNTRY_CODE, selectedIndicatorCode, analysisWindow),
+          getForecast(COUNTRY_CODE, selectedIndicatorCode, analysisWindow, 3),
         ]);
 
         if (!cancelled) {
           setSeries(seriesResult);
           setTrendResponse(trendResult);
+          setForecastResponse(forecastResult);
         }
       } catch (requestError) {
         if (!cancelled) {
           setSeries(null);
           setTrendResponse(null);
+          setForecastResponse(null);
           setError(getErrorMessage(requestError));
         }
       } finally {
@@ -429,6 +442,9 @@ export default function Dashboard() {
                     financial or economic advice.
                   </p>
                 </article>
+                {forecastResponse && (
+                  <ForecastPanel forecastResponse={forecastResponse} />
+                )}
               </aside>
             </div>
           </>

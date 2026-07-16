@@ -7,10 +7,12 @@ import {
   getDataSeries,
   getIndicators,
   getTrendAnalysis,
+  getForecast,
 } from "../api/econApi";
 
 import EconomicLineChart from "../Components/EconomicLineChart";
 import MetricCard from "../Components/MetricCard";
+import ForecastPanel from "../Components/ForecastPanel";
 
 import type {
   Country,
@@ -19,6 +21,7 @@ import type {
   TrendAnalysisResponse,
   TrendDirection,
   VolatilityLevel,
+  ForecastResponse,
 } from "../types/economy";
 
 import { formatEconomicValue, formatSignedValue } from "../utils/formatters";
@@ -95,6 +98,9 @@ export default function CountryDetail() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [forecastResponse, setForecastResponse] =
+    useState<ForecastResponse | null>(null);
+
   useEffect(() => {
     setSelectedIndicatorCode(indicatorFromUrl);
   }, [indicatorFromUrl]);
@@ -143,19 +149,22 @@ export default function CountryDetail() {
         setIsLoadingData(true);
         setError(null);
 
-        const [seriesResult, trendResult] = await Promise.all([
+        const [seriesResult, trendResult, forecastResult] = await Promise.all([
           getDataSeries(countryCode, selectedIndicatorCode),
           getTrendAnalysis(countryCode, selectedIndicatorCode, analysisWindow),
+          getForecast(countryCode, selectedIndicatorCode, analysisWindow, 3),
         ]);
 
         if (!cancelled) {
           setSeries(seriesResult);
           setTrendResponse(trendResult);
+          setForecastResponse(forecastResult);
         }
       } catch (requestError) {
         if (!cancelled) {
           setSeries(null);
           setTrendResponse(null);
+          setForecastResponse(null);
           setError(getErrorMessage(requestError));
         }
       } finally {
@@ -482,6 +491,9 @@ export default function CountryDetail() {
                     </div>
                   </dl>
                 </article>
+                {forecastResponse && (
+                  <ForecastPanel forecastResponse={forecastResponse} />
+                )}
               </aside>
             </div>
           </>

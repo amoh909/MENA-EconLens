@@ -30,15 +30,9 @@ export interface DataSeriesResponse {
   data: DataPoint[];
 }
 
-export type TrendDirection =
-  | "increasing"
-  | "decreasing"
-  | "stable";
+export type TrendDirection = "increasing" | "decreasing" | "stable";
 
-export type VolatilityLevel =
-  | "low"
-  | "moderate"
-  | "high";
+export type VolatilityLevel = "low" | "moderate" | "high";
 
 export interface TrendAnalysis {
   observation_count: number;
@@ -136,4 +130,48 @@ export interface CountryComparisonStats {
   maximum: number | null;
   average: number | null;
   observationCount: number;
+}
+
+export interface ForecastPoint {
+  year: number;
+  value: number;
+}
+
+export interface ForecastAnalysis {
+  method: string;
+
+  training_period: {
+    start_year: number;
+    end_year: number;
+  };
+
+  observation_count: number;
+
+  model: {
+    slope_per_year: number;
+    intercept: number;
+    r_squared: number;
+  };
+
+  forecast: ForecastPoint[];
+
+  warning: string;
+}
+
+export interface ForecastResponse {
+  country: {
+    name: string;
+    iso3_code: string;
+  };
+
+  indicator: {
+    name: string;
+    code: string;
+    unit: string;
+    category: string;
+  };
+
+  requested_window: number;
+  requested_years: number;
+  forecast: ForecastAnalysis;
 }

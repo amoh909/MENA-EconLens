@@ -6,6 +6,7 @@ import type {
   DataSeriesResponse,
   Indicator,
   TrendAnalysisResponse,
+  ForecastResponse,
 } from "../types/economy";
 
 export async function getIndicators(): Promise<Indicator[]> {
@@ -67,6 +68,24 @@ export async function compareCountries(
 
 export async function getCountry(countryCode: string): Promise<Country> {
   const response = await api.get<Country>(`/countries/${countryCode}/`);
+
+  return response.data;
+}
+
+export async function getForecast(
+  countryCode: string,
+  indicatorCode: string,
+  window: number,
+  years: number,
+): Promise<ForecastResponse> {
+  const response = await api.get<ForecastResponse>("/analysis/forecast/", {
+    params: {
+      country: countryCode,
+      indicator: indicatorCode,
+      window,
+      years,
+    },
+  });
 
   return response.data;
 }
