@@ -319,17 +319,8 @@ export default function Countries() {
                       </span>
                     </div>
 
-                    <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950 p-3">
-                      <p className="text-xs uppercase tracking-wider text-slate-500">
-                        Opens with
-                      </p>
 
-                      <p className="mt-1 text-sm font-medium text-slate-200">
-                        {selectedIndicatorMeta?.name ?? selectedIndicator}
-                      </p>
-                    </div>
-
-                    <p className="mt-4 text-xs font-medium text-blue-400">
+                    <p className="mt-5 text-xs font-medium text-blue-400">
                       View country profile →
                     </p>
                   </Link>
