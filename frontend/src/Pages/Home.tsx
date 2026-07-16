@@ -9,17 +9,18 @@ export default function Home() {
           MENA EconLens
         </h1>
         <p className="text-slate-400 text-base leading-relaxed">
-          Explore economic indicators, compare countries, and understand regional economic trends.
+          Explore economic indicators, compare countries, and understand
+          regional economic trends.
         </p>
       </div>
 
       {/* Navigation Actions */}
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
         <Link
-          to="/dashboard"
+          to="/countries"
           className="px-5 py-3 text-center bg-blue-600 hover:bg-blue-500 font-medium text-sm rounded-lg shadow-lg shadow-blue-950/50 transition-colors"
         >
-          Explore Lebanon
+          Explore Countries
         </Link>
         <Link
           to="/compare"

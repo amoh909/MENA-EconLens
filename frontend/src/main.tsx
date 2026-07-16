@@ -8,10 +8,12 @@ import Dashboard from "./Pages/Dashboard";
 import Indicators from "./Pages/Indicators";
 import CountryDetail from "./Pages/CountryDetail";
 import Compare from "./Pages/Compare";
+import Countries from "./Pages/Countries";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home /> },
   { path: "/dashboard", element: <Dashboard /> },
+  { path: "/countries", element: <Countries /> },
   { path: "/indicators", element: <Indicators /> },
   { path: "/countries/:iso3Code", element: <CountryDetail /> },
   { path: "/compare", element: <Compare /> },

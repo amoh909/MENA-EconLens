@@ -60,26 +60,23 @@ function getLatestValue(
 export default function Indicators() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const indicatorFromUrl =
-    searchParams.get("indicator") ?? DEFAULT_INDICATOR;
+  const indicatorFromUrl = searchParams.get("indicator") ?? DEFAULT_INDICATOR;
 
-  const countryFromUrl =
-    searchParams.get("country") ?? DEFAULT_COUNTRY;
+  const countryFromUrl = searchParams.get("country") ?? DEFAULT_COUNTRY;
 
   const [countries, setCountries] = useState<Country[]>([]);
   const [indicators, setIndicators] = useState<Indicator[]>([]);
 
-  const [selectedIndicator, setSelectedIndicator] =
-    useState(indicatorFromUrl);
+  const [selectedIndicator, setSelectedIndicator] = useState(indicatorFromUrl);
 
-  const [selectedCountry, setSelectedCountry] =
-    useState(countryFromUrl.toUpperCase());
+  const [selectedCountry, setSelectedCountry] = useState(
+    countryFromUrl.toUpperCase(),
+  );
 
   const [comparison, setComparison] =
     useState<CountryComparisonResponse | null>(null);
 
-  const [series, setSeries] =
-    useState<DataSeriesResponse | null>(null);
+  const [series, setSeries] = useState<DataSeriesResponse | null>(null);
 
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -101,11 +98,10 @@ export default function Indicators() {
         setIsLoadingOptions(true);
         setError(null);
 
-        const [countriesResult, indicatorsResult] =
-          await Promise.all([
-            getCountries(),
-            getIndicators(),
-          ]);
+        const [countriesResult, indicatorsResult] = await Promise.all([
+          getCountries(),
+          getIndicators(),
+        ]);
 
         if (!cancelled) {
           setCountries(countriesResult);
@@ -142,11 +138,10 @@ export default function Indicators() {
             ? countries.map((country) => country.iso3_code)
             : ["LBN", "JOR", "EGY"];
 
-        const [comparisonResult, seriesResult] =
-          await Promise.all([
-            compareCountries(countryCodes, selectedIndicator),
-            getDataSeries(selectedCountry, selectedIndicator),
-          ]);
+        const [comparisonResult, seriesResult] = await Promise.all([
+          compareCountries(countryCodes, selectedIndicator),
+          getDataSeries(selectedCountry, selectedIndicator),
+        ]);
 
         if (!cancelled) {
           setComparison(comparisonResult);
@@ -174,17 +169,15 @@ export default function Indicators() {
 
   const selectedIndicatorMeta = useMemo(
     () =>
-      indicators.find(
-        (indicator) => indicator.code === selectedIndicator,
-      ) ?? null,
+      indicators.find((indicator) => indicator.code === selectedIndicator) ??
+      null,
     [indicators, selectedIndicator],
   );
 
   const selectedCountryMeta = useMemo(
     () =>
-      countries.find(
-        (country) => country.iso3_code === selectedCountry,
-      ) ?? null,
+      countries.find((country) => country.iso3_code === selectedCountry) ??
+      null,
     [countries, selectedCountry],
   );
 
@@ -241,10 +234,7 @@ export default function Indicators() {
       : null;
 
   const unit =
-    comparison?.unit ??
-    series?.unit ??
-    selectedIndicatorMeta?.unit ??
-    "";
+    comparison?.unit ?? series?.unit ?? selectedIndicatorMeta?.unit ?? "";
 
   function updateSelectedIndicator(nextIndicator: string) {
     const nextParams = new URLSearchParams(searchParams);
@@ -280,9 +270,8 @@ export default function Indicators() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              Browse macroeconomic indicators, inspect latest regional
-              values, and open country pages with the selected indicator
-              preserved.
+              Browse macroeconomic indicators, inspect latest regional values,
+              and open country pages with the selected indicator preserved.
             </p>
           </div>
 
@@ -299,6 +288,13 @@ export default function Indicators() {
               className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-slate-700"
             >
               Dashboard
+            </Link>
+
+            <Link
+              to={`/countries?indicator=${encodeURIComponent(selectedIndicator)}`}
+              className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-slate-700"
+            >
+              Countries
             </Link>
 
             <Link
@@ -319,16 +315,11 @@ export default function Indicators() {
             <select
               value={selectedIndicator}
               disabled={isLoadingOptions}
-              onChange={(event) =>
-                updateSelectedIndicator(event.target.value)
-              }
+              onChange={(event) => updateSelectedIndicator(event.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500 disabled:opacity-60"
             >
               {indicators.map((indicator) => (
-                <option
-                  key={indicator.code}
-                  value={indicator.code}
-                >
+                <option key={indicator.code} value={indicator.code}>
                   {indicator.name}
                 </option>
               ))}
@@ -343,16 +334,11 @@ export default function Indicators() {
             <select
               value={selectedCountry}
               disabled={isLoadingOptions}
-              onChange={(event) =>
-                updateSelectedCountry(event.target.value)
-              }
+              onChange={(event) => updateSelectedCountry(event.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500 disabled:opacity-60"
             >
               {countries.map((country) => (
-                <option
-                  key={country.iso3_code}
-                  value={country.iso3_code}
-                >
+                <option key={country.iso3_code} value={country.iso3_code}>
                   {country.name}
                 </option>
               ))}
@@ -366,9 +352,7 @@ export default function Indicators() {
               Could not load indicators page
             </h2>
 
-            <p className="mt-2 text-sm text-rose-200/80">
-              {error}
-            </p>
+            <p className="mt-2 text-sm text-rose-200/80">{error}</p>
           </section>
         )}
 
@@ -443,9 +427,7 @@ export default function Indicators() {
 
         {isLoadingData && (
           <section className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center">
-            <p className="text-sm text-slate-400">
-              Loading indicator data...
-            </p>
+            <p className="text-sm text-slate-400">Loading indicator data...</p>
           </section>
         )}
 
@@ -468,9 +450,7 @@ export default function Indicators() {
                         {row.country}
                       </p>
 
-                      <p className="text-xs text-slate-500">
-                        {row.iso3Code}
-                      </p>
+                      <p className="text-xs text-slate-500">{row.iso3Code}</p>
                     </div>
 
                     <div className="text-right">

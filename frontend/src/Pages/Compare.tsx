@@ -221,6 +221,13 @@ export default function Compare() {
 
           <div className="flex flex-wrap gap-2">
             <Link
+              to="/countries"
+              className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-slate-700"
+            >
+              Countries
+            </Link>
+
+            <Link
               to="/dashboard"
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
             >
