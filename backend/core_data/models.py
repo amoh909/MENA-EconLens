@@ -14,14 +14,24 @@ class Country(models.Model):
         return f"{self.name} ({self.iso3_code})"
     
 class Indicator(models.Model):
+    class InterpretationDirection(models.TextChoices):
+        HIGHER_IS_BETTER = "higher_is_better", "Higher is usually better"
+        LOWER_IS_BETTER = "lower_is_better", "Lower is usually better"
+        CONTEXT_DEPENDENT = "context_dependent", "Context dependent"
+
     code = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     category = models.CharField(max_length=100, blank=True)
     unit = models.CharField(max_length=100, blank=True)
+    interpretation_direction = models.CharField(
+        max_length=32,
+        choices=InterpretationDirection.choices,
+        default=InterpretationDirection.CONTEXT_DEPENDENT,
+    )
 
     class Meta:
-        ordering = ['category','name']
+        ordering = ['category', 'name']
 
     def __str__(self):
         return f"{self.name} ({self.code})"

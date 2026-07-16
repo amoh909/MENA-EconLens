@@ -65,11 +65,12 @@ def trend_analysis(request):
 
     try:
         result = analyze_trend(
-            selected_points,
-            country_name=country.name,
-            indicator_name=indicator.name,
-            unit=indicator.unit,
-        )
+        selected_points,
+        country_name=country.name,
+        indicator_name=indicator.name,
+        unit=indicator.unit,
+        interpretation_direction=indicator.interpretation_direction,
+)
     except InsufficientDataError as exc:
         return Response(
             {

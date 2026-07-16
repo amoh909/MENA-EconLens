@@ -67,6 +67,54 @@ def _classify_trend(slope: float, values: list[float]) -> str:
     
     return "stable"
 
+def _interpret_trend(trend: str, interpretation_direction: str) -> dict[str, str]:
+    if trend == "stable":
+        return {
+            "direction": interpretation_direction,
+            "assessment": "neutral",
+            "label": "Stable movement",
+            "description": "The indicator is relatively stable over the selected period.",
+        }
+
+    if interpretation_direction == "higher_is_better":
+        if trend == "increasing":
+            return {
+                "direction": interpretation_direction,
+                "assessment": "favorable",
+                "label": "Usually favorable",
+                "description": "An increase is usually considered favorable for this indicator.",
+            }
+
+        return {
+            "direction": interpretation_direction,
+            "assessment": "unfavorable",
+            "label": "Usually unfavorable",
+            "description": "A decrease is usually considered unfavorable for this indicator.",
+        }
+
+    if interpretation_direction == "lower_is_better":
+        if trend == "decreasing":
+            return {
+                "direction": interpretation_direction,
+                "assessment": "favorable",
+                "label": "Usually favorable",
+                "description": "A decrease is usually considered favorable for this indicator.",
+            }
+
+        return {
+            "direction": interpretation_direction,
+            "assessment": "unfavorable",
+            "label": "Usually unfavorable",
+            "description": "An increase is usually considered unfavorable for this indicator.",
+        }
+
+    return {
+        "direction": interpretation_direction,
+        "assessment": "context_dependent",
+        "label": "Context-dependent",
+        "description": "The economic meaning of this movement depends on country context and supporting indicators.",
+    }
+
 def _classify_volatility(values: list[float]) -> tuple[str, float]:
     standard_deviation = pstdev(values)
     average_magnitude = fmean(abs(value) for value in values)
@@ -108,7 +156,14 @@ def _build_summary(*, country_name: str, indicator_name: str, unit: str, trend: 
         f"{fit_sentence}"
     )
 
-def analyze_trend(points: list[dict[str, Any]], *, country_name: str, indicator_name: str, unit: str = "",) -> dict[str, Any]:
+def analyze_trend(
+    points: list[dict[str, Any]],
+    *,
+    country_name: str,
+    indicator_name: str,
+    unit: str = "",
+    interpretation_direction: str = "context_dependent",
+) -> dict[str, Any]:
     """
     Analyze an economic item series.
 
@@ -161,6 +216,7 @@ def analyze_trend(points: list[dict[str, Any]], *, country_name: str, indicator_
 
     slope, intercept, r_squared = _linear_regression(years, values)
     trend = _classify_trend(slope, values)
+    interpretation = _interpret_trend(trend, interpretation_direction)
     volatility, volatility_ratio = _classify_volatility(values)
 
     summary = _build_summary(
@@ -183,6 +239,7 @@ def analyze_trend(points: list[dict[str, Any]], *, country_name: str, indicator_
             "end_year": years[-1],
         },
         "trend": trend,
+        "interpretation": interpretation,
         "volatility": {
             "level": volatility,
             "ratio": _rounded(volatility_ratio),

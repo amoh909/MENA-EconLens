@@ -19,21 +19,26 @@ import type {
   DataSeriesResponse,
   Indicator,
   TrendAnalysisResponse,
-  TrendDirection,
   VolatilityLevel,
   ForecastResponse,
+  EconomicAssessment,
 } from "../types/economy";
 
 import { formatEconomicValue, formatSignedValue } from "../utils/formatters";
 
 const DEFAULT_INDICATOR_CODE = "NY.GDP.MKTP.KD.ZG";
 
-function getTrendClassName(trend: TrendDirection): string {
-  switch (trend) {
-    case "increasing":
+function getAssessmentClassName(assessment: EconomicAssessment): string {
+  switch (assessment) {
+    case "favorable":
       return "text-emerald-400";
-    case "decreasing":
+
+    case "unfavorable":
       return "text-rose-400";
+
+    case "context_dependent":
+      return "text-amber-400";
+
     default:
       return "text-slate-300";
   }
@@ -374,8 +379,10 @@ export default function CountryDetail() {
                 label="Latest value"
                 value={formatEconomicValue(analysis.latest.value, unit)}
                 helper={`Recorded in ${analysis.latest.year}`}
-                status={analysis.trend}
-                statusClassName={getTrendClassName(analysis.trend)}
+                status={analysis.interpretation.label}
+                statusClassName={getAssessmentClassName(
+                  analysis.interpretation.assessment,
+                )}
               />
 
               <MetricCard

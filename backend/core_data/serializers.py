@@ -9,7 +9,7 @@ class CountrySerializer(serializers.ModelSerializer):
 class IndicatorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Indicator
-        fields = ['id', 'code', 'name', 'description', 'category', 'unit']
+        fields = ['id', 'code', 'name', 'description', 'category', 'unit', 'interpretation_direction']
 
 class DataPointSerializer(serializers.ModelSerializer):
     country = CountrySerializer(read_only=True)

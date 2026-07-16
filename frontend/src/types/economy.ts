@@ -14,6 +14,7 @@ export interface Indicator {
   description: string;
   category: string;
   unit: string;
+  interpretation_direction: InterpretationDirection;
 }
 
 export interface DataPoint {
@@ -32,6 +33,17 @@ export interface DataSeriesResponse {
 
 export type TrendDirection = "increasing" | "decreasing" | "stable";
 
+export type InterpretationDirection =
+  | "higher_is_better"
+  | "lower_is_better"
+  | "context_dependent";
+
+export type EconomicAssessment =
+  | "favorable"
+  | "unfavorable"
+  | "neutral"
+  | "context_dependent";
+
 export type VolatilityLevel = "low" | "moderate" | "high";
 
 export interface TrendAnalysis {
@@ -43,6 +55,13 @@ export interface TrendAnalysis {
   };
 
   trend: TrendDirection;
+
+  interpretation: {
+  direction: InterpretationDirection;
+  assessment: EconomicAssessment;
+  label: string;
+  description: string;
+};
 
   volatility: {
     level: VolatilityLevel;
