@@ -13,7 +13,7 @@ const router = createBrowserRouter([
   { path: "/", element: <Home /> },
   { path: "/dashboard", element: <Dashboard /> },
   { path: "/indicators", element: <Indicators /> },
-  { path: "/countrydetail", element: <CountryDetail /> },
+  { path: "/countries/:iso3Code", element: <CountryDetail /> },
   { path: "/compare", element: <Compare /> },
   {
     path: "*",

@@ -1,90 +1,476 @@
-import { Link } from "react-router-dom";
+import axios from "axios";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+
+import {
+  getCountry,
+  getDataSeries,
+  getIndicators,
+  getTrendAnalysis,
+} from "../api/econApi";
+
+import EconomicLineChart from "../Components/EconomicLineChart";
+import MetricCard from "../Components/MetricCard";
+
+import type {
+  Country,
+  DataSeriesResponse,
+  Indicator,
+  TrendAnalysisResponse,
+  TrendDirection,
+  VolatilityLevel,
+} from "../types/economy";
+
+import { formatEconomicValue, formatSignedValue } from "../utils/formatters";
+
+const DEFAULT_INDICATOR_CODE = "NY.GDP.MKTP.KD.ZG";
+
+function getTrendClassName(trend: TrendDirection): string {
+  switch (trend) {
+    case "increasing":
+      return "text-emerald-400";
+    case "decreasing":
+      return "text-rose-400";
+    default:
+      return "text-slate-300";
+  }
+}
+
+function getVolatilityClassName(volatility: VolatilityLevel): string {
+  switch (volatility) {
+    case "high":
+      return "text-rose-400";
+    case "moderate":
+      return "text-amber-400";
+    default:
+      return "text-emerald-400";
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const backendMessage = error.response?.data?.detail;
+
+    if (typeof backendMessage === "string") {
+      return backendMessage;
+    }
+
+    if (!error.response) {
+      return "Could not connect to the Django API. Confirm that it is running on port 8000.";
+    }
+
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "An unexpected error occurred.";
+}
 
 export default function CountryDetail() {
+  const { iso3Code } = useParams();
+
+  const countryCode = (iso3Code ?? "LBN").toUpperCase();
+
+  const [country, setCountry] = useState<Country | null>(null);
+  const [indicators, setIndicators] = useState<Indicator[]>([]);
+
+  const [selectedIndicatorCode, setSelectedIndicatorCode] = useState(
+    DEFAULT_INDICATOR_CODE,
+  );
+
+  const [analysisWindow, setAnalysisWindow] = useState(10);
+
+  const [series, setSeries] = useState<DataSeriesResponse | null>(null);
+
+  const [trendResponse, setTrendResponse] =
+    useState<TrendAnalysisResponse | null>(null);
+
+  const [isLoadingMeta, setIsLoadingMeta] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMeta() {
+      try {
+        setIsLoadingMeta(true);
+        setError(null);
+
+        const [countryResult, indicatorsResult] = await Promise.all([
+          getCountry(countryCode),
+          getIndicators(),
+        ]);
+
+        if (!cancelled) {
+          setCountry(countryResult);
+          setIndicators(indicatorsResult);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setCountry(null);
+          setError(getErrorMessage(requestError));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMeta(false);
+        }
+      }
+    }
+
+    void loadMeta();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [countryCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCountryData() {
+      try {
+        setIsLoadingData(true);
+        setError(null);
+
+        const [seriesResult, trendResult] = await Promise.all([
+          getDataSeries(countryCode, selectedIndicatorCode),
+          getTrendAnalysis(countryCode, selectedIndicatorCode, analysisWindow),
+        ]);
+
+        if (!cancelled) {
+          setSeries(seriesResult);
+          setTrendResponse(trendResult);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setSeries(null);
+          setTrendResponse(null);
+          setError(getErrorMessage(requestError));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingData(false);
+        }
+      }
+    }
+
+    void loadCountryData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [countryCode, selectedIndicatorCode, analysisWindow]);
+
+  const selectedIndicator = useMemo(
+    () =>
+      indicators.find(
+        (indicator) => indicator.code === selectedIndicatorCode,
+      ) ?? null,
+    [indicators, selectedIndicatorCode],
+  );
+
+  const visibleSeries = useMemo(() => {
+    if (!series) {
+      return [];
+    }
+
+    return series.data.filter((point) => point.year >= 2000);
+  }, [series]);
+
+  const analysis = trendResponse?.analysis;
+
+  const unit = trendResponse?.indicator.unit ?? selectedIndicator?.unit ?? "";
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 space-y-6">
-      
-      {/* Page Header Navigation */}
-      <header className="flex justify-between items-center border-b border-slate-900 pb-5">
-        <div>
-          <span className="text-xs font-semibold text-blue-400 tracking-wider uppercase">Regional Profiling</span>
-          <h1 className="text-2xl font-bold tracking-tight">Country Profile Study</h1>
-        </div>
-        <Link
-          to="/"
-          className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-lg text-sm transition-colors"
-        >
-          &larr; Home
-        </Link>
-      </header>
-
-      {/* Country Identity Block */}
-      <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-        <div className="md:col-span-2 space-y-2">
-          <div className="flex items-center gap-3">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-100">Republic of Lebanon</h2>
-            <span className="text-xs bg-blue-950 text-blue-400 border border-blue-900 px-2.5 py-0.5 rounded-full font-medium">
-              MENA
+    <div className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="flex flex-col gap-4 border-b border-slate-900 pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+              Country profile
             </span>
-          </div>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            Positioned at the crossroads of the Mediterranean Basin and the Arabian hinterland, Lebanon presents a historically service-oriented economy undergoing significant structural adjustments and institutional reforms.
-          </p>
-        </div>
-        
-        {/* Quick Metadata Matrix */}
-        <div className="bg-slate-950 p-4 rounded-lg border border-slate-850 space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-slate-500">Capital:</span> <span className="font-medium text-slate-300">Beirut</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Currency:</span> <span className="font-medium text-slate-300">Lebanese Pound (LBP)</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Population:</span> <span className="font-medium text-slate-300">~5.4 Million</span></div>
-        </div>
-      </section>
 
-      {/* Detailed Analysis Breakdown Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left: Structural Economic Narrative */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-          <h3 className="text-base font-semibold">Macro-Structural Outlook</h3>
-          <div className="text-sm text-slate-400 space-y-3 leading-relaxed">
-            <p>
-              The domestic landscape is highly defined by fiscal and commercial re-indexing. Modern resource allocations are leaning heavily toward developing decentralized service paradigms, rebuilding balance sheets, and balancing severe trade deficits.
-            </p>
-            <p>
-              International tracking bodies highlight a critical need for structural transparency to encourage foreign direct investment (FDI) inflows, stabilizer index tracking, and formalizing private-public development partnerships across the coming cycles.
+            <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-100">
+              {country?.name ?? countryCode}
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm text-slate-400">
+              Explore country-specific macroeconomic indicators, trend
+              diagnostics, and historical World Bank data.
             </p>
           </div>
-        </div>
 
-        {/* Right: Key Annual Metrics Matrix */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-          <h3 className="text-base font-semibold">Historical Baseline Checklist</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-400">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase">
-                  <th className="pb-2">Year</th>
-                  <th className="pb-2">GDP Cap ($)</th>
-                  <th className="pb-2 text-right">Stability Index</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-850">
-                {[
-                  { year: "2026 (Proj)", gdp: "$3,950", status: "Re-indexing", color: "text-amber-400" },
-                  { year: "2025", gdp: "$4,120", status: "Compressed", color: "text-rose-400" },
-                  { year: "2024", gdp: "$4,300", status: "Compressed", color: "text-rose-400" },
-                ].map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-850/30 transition-colors">
-                    <td className="py-2.5 font-medium text-slate-200">{row.year}</td>
-                    <td className="py-2.5">{row.gdp}</td>
-                    <td className={`py-2.5 text-right font-medium ${row.color}`}>{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/compare"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+            >
+              Compare countries
+            </Link>
+
+            <Link
+              to="/dashboard"
+              className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-slate-700"
+            >
+              Dashboard
+            </Link>
           </div>
-        </div>
+        </header>
 
+        {error && (
+          <section className="rounded-xl border border-rose-900 bg-rose-950/40 p-5">
+            <h2 className="font-semibold text-rose-300">
+              Could not load country page
+            </h2>
+
+            <p className="mt-2 text-sm text-rose-200/80">{error}</p>
+          </section>
+        )}
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 md:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Country
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <h2 className="text-2xl font-bold text-slate-100">
+                {country?.name ?? "Loading..."}
+              </h2>
+
+              {country && (
+                <span className="rounded-full border border-blue-900 bg-blue-950 px-2.5 py-1 text-xs font-medium text-blue-300">
+                  {country.iso3_code}
+                </span>
+              )}
+
+              {country?.region && (
+                <span className="rounded-full border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-medium text-slate-400">
+                  {country.region}
+                </span>
+              )}
+            </div>
+
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              This page uses the same EconLens data pipeline as the dashboard,
+              but allows country-specific exploration through the dynamic route{" "}
+              <span className="font-mono text-slate-300">
+                /countries/{countryCode}
+              </span>
+              .
+            </p>
+          </article>
+
+          <article className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Metadata
+            </p>
+
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">ISO2</dt>
+                <dd className="font-medium text-slate-200">
+                  {country?.iso2_code ?? "—"}
+                </dd>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">ISO3</dt>
+                <dd className="font-medium text-slate-200">
+                  {country?.iso3_code ?? "—"}
+                </dd>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Income level</dt>
+                <dd className="font-medium text-slate-200">
+                  {country?.income_level || "Not specified"}
+                </dd>
+              </div>
+            </dl>
+          </article>
+        </section>
+
+        <section className="grid gap-4 rounded-xl border border-slate-800 bg-slate-900 p-5 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Economic indicator
+            </span>
+
+            <select
+              value={selectedIndicatorCode}
+              disabled={isLoadingMeta}
+              onChange={(event) => setSelectedIndicatorCode(event.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500 disabled:opacity-60"
+            >
+              {indicators.map((indicator) => (
+                <option key={indicator.code} value={indicator.code}>
+                  {indicator.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-2">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Trend-analysis window
+            </span>
+
+            <select
+              value={analysisWindow}
+              onChange={(event) =>
+                setAnalysisWindow(Number(event.target.value))
+              }
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500"
+            >
+              <option value={5}>Latest 5 observations</option>
+              <option value={10}>Latest 10 observations</option>
+              <option value={15}>Latest 15 observations</option>
+              <option value={20}>Latest 20 observations</option>
+            </select>
+          </label>
+        </section>
+
+        {isLoadingData && (
+          <section className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center">
+            <p className="text-sm text-slate-400">
+              Loading country indicator data...
+            </p>
+          </section>
+        )}
+
+        {!isLoadingData && analysis && series && (
+          <>
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                label="Latest value"
+                value={formatEconomicValue(analysis.latest.value, unit)}
+                helper={`Recorded in ${analysis.latest.year}`}
+                status={analysis.trend}
+                statusClassName={getTrendClassName(analysis.trend)}
+              />
+
+              <MetricCard
+                label="Period change"
+                value={formatSignedValue(analysis.change.absolute, unit)}
+                helper={
+                  analysis.change.percentage === null
+                    ? `${analysis.period.start_year}–${analysis.period.end_year}`
+                    : `${analysis.change.percentage > 0 ? "+" : ""}${analysis.change.percentage.toFixed(2)}% relative change`
+                }
+              />
+
+              <MetricCard
+                label="Mean"
+                value={formatEconomicValue(analysis.mean, unit)}
+                helper={`${analysis.observation_count} observations analyzed`}
+              />
+
+              <MetricCard
+                label="Volatility"
+                value={analysis.volatility.level}
+                helper={`Ratio: ${analysis.volatility.ratio.toFixed(3)}`}
+                status={analysis.volatility.level}
+                statusClassName={getVolatilityClassName(
+                  analysis.volatility.level,
+                )}
+              />
+            </section>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <section className="space-y-6 lg:col-span-2">
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+                  <div className="mb-5">
+                    <h2 className="text-lg font-semibold text-slate-100">
+                      {series.indicator}
+                    </h2>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Historical data from 2000 onward · Unit:{" "}
+                      {series.unit || "not specified"}
+                    </p>
+                  </div>
+
+                  <EconomicLineChart
+                    data={visibleSeries}
+                    indicatorName={series.indicator}
+                    unit={series.unit}
+                  />
+                </article>
+
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Country trend summary
+                  </h2>
+
+                  <p className="mt-3 text-sm leading-7 text-slate-400">
+                    {analysis.summary_en}
+                  </p>
+                </article>
+              </section>
+
+              <aside className="space-y-6">
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Observed range
+                  </h2>
+
+                  <dl className="mt-5 space-y-4">
+                    <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500">
+                        Minimum
+                      </dt>
+                      <dd className="mt-1 text-lg font-bold text-slate-100">
+                        {formatEconomicValue(analysis.minimum.value, unit)}
+                      </dd>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Recorded in {analysis.minimum.year}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500">
+                        Maximum
+                      </dt>
+                      <dd className="mt-1 text-lg font-bold text-slate-100">
+                        {formatEconomicValue(analysis.maximum.value, unit)}
+                      </dd>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Recorded in {analysis.maximum.year}
+                      </p>
+                    </div>
+                  </dl>
+                </article>
+
+                <article className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Model diagnostics
+                  </h2>
+
+                  <dl className="mt-5 space-y-3 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-slate-500">Slope/year</dt>
+                      <dd className="font-medium text-slate-200">
+                        {analysis.linear_model.slope_per_year.toFixed(4)}
+                      </dd>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-slate-500">R²</dt>
+                      <dd className="font-medium text-slate-200">
+                        {analysis.linear_model.r_squared.toFixed(4)}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              </aside>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

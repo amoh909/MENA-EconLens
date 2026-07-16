@@ -64,3 +64,9 @@ export async function compareCountries(
 
   return response.data;
 }
+
+export async function getCountry(countryCode: string): Promise<Country> {
+  const response = await api.get<Country>(`/countries/${countryCode}/`);
+
+  return response.data;
+}

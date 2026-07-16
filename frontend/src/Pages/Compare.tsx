@@ -2,11 +2,7 @@ import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import {
-  compareCountries,
-  getCountries,
-  getIndicators,
-} from "../api/econApi";
+import { compareCountries, getCountries, getIndicators } from "../api/econApi";
 
 import ComparisonLineChart from "../Components/ComparisonLineChart";
 import MetricCard from "../Components/MetricCard";
@@ -22,9 +18,7 @@ import {
   transformComparisonSeries,
 } from "../utils/comparison";
 
-import {
-  formatEconomicValue,
-} from "../utils/formatters";
+import { formatEconomicValue } from "../utils/formatters";
 
 const DEFAULT_COUNTRIES = ["LBN", "JOR", "EGY"];
 const DEFAULT_INDICATOR = "NY.GDP.MKTP.KD.ZG";
@@ -58,8 +52,7 @@ export default function Compare() {
   const [selectedCountries, setSelectedCountries] =
     useState<string[]>(DEFAULT_COUNTRIES);
 
-  const [selectedIndicator, setSelectedIndicator] =
-    useState(DEFAULT_INDICATOR);
+  const [selectedIndicator, setSelectedIndicator] = useState(DEFAULT_INDICATOR);
 
   const [comparison, setComparison] =
     useState<CountryComparisonResponse | null>(null);
@@ -75,11 +68,10 @@ export default function Compare() {
       try {
         setIsLoadingOptions(true);
 
-        const [countriesResult, indicatorsResult] =
-          await Promise.all([
-            getCountries(),
-            getIndicators(),
-          ]);
+        const [countriesResult, indicatorsResult] = await Promise.all([
+          getCountries(),
+          getIndicators(),
+        ]);
 
         if (!cancelled) {
           setCountries(countriesResult);
@@ -145,9 +137,8 @@ export default function Compare() {
 
   const selectedIndicatorMeta = useMemo(
     () =>
-      indicators.find(
-        (indicator) => indicator.code === selectedIndicator,
-      ) ?? null,
+      indicators.find((indicator) => indicator.code === selectedIndicator) ??
+      null,
     [indicators, selectedIndicator],
   );
 
@@ -156,8 +147,9 @@ export default function Compare() {
       return [];
     }
 
-    return transformComparisonSeries(comparison.series)
-      .filter((point) => Number(point.year) >= 2000);
+    return transformComparisonSeries(comparison.series).filter(
+      (point) => Number(point.year) >= 2000,
+    );
   }, [comparison]);
 
   const stats = useMemo(() => {
@@ -169,34 +161,26 @@ export default function Compare() {
   }, [comparison]);
 
   const bestLatest = useMemo(() => {
-    const valid = stats.filter(
-      (item) => item.latestValue !== null,
-    );
+    const valid = stats.filter((item) => item.latestValue !== null);
 
     if (valid.length === 0) {
       return null;
     }
 
     return valid.reduce((best, item) =>
-      Number(item.latestValue) > Number(best.latestValue)
-        ? item
-        : best,
+      Number(item.latestValue) > Number(best.latestValue) ? item : best,
     );
   }, [stats]);
 
   const weakestLatest = useMemo(() => {
-    const valid = stats.filter(
-      (item) => item.latestValue !== null,
-    );
+    const valid = stats.filter((item) => item.latestValue !== null);
 
     if (valid.length === 0) {
       return null;
     }
 
     return valid.reduce((weakest, item) =>
-      Number(item.latestValue) < Number(weakest.latestValue)
-        ? item
-        : weakest,
+      Number(item.latestValue) < Number(weakest.latestValue) ? item : weakest,
     );
   }, [stats]);
 
@@ -218,10 +202,7 @@ export default function Compare() {
     });
   }
 
-  const unit =
-    comparison?.unit ??
-    selectedIndicatorMeta?.unit ??
-    "";
+  const unit = comparison?.unit ?? selectedIndicatorMeta?.unit ?? "";
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6">
@@ -233,8 +214,8 @@ export default function Compare() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              Compare MENA economies using real indicator series
-              loaded through the Django API.
+              Compare MENA economies using real indicator series loaded through
+              the Django API.
             </p>
           </div>
 
@@ -271,22 +252,15 @@ export default function Compare() {
                   <button
                     key={country.iso3_code}
                     type="button"
-                    disabled={
-                      !isSelected &&
-                      selectedCountries.length >= 6
-                    }
-                    onClick={() =>
-                      toggleCountry(country.iso3_code)
-                    }
+                    disabled={!isSelected && selectedCountries.length >= 6}
+                    onClick={() => toggleCountry(country.iso3_code)}
                     className={`rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                       isSelected
                         ? "border-blue-500 bg-blue-950 text-blue-200"
                         : "border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 hover:text-slate-200"
                     }`}
                   >
-                    <span className="block">
-                      {country.name}
-                    </span>
+                    <span className="block">{country.name}</span>
 
                     <span className="text-[10px] text-slate-500">
                       {country.iso3_code}
@@ -309,16 +283,11 @@ export default function Compare() {
             <select
               value={selectedIndicator}
               disabled={isLoadingOptions}
-              onChange={(event) =>
-                setSelectedIndicator(event.target.value)
-              }
+              onChange={(event) => setSelectedIndicator(event.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition-colors focus:border-blue-500 disabled:opacity-60"
             >
               {indicators.map((indicator) => (
-                <option
-                  key={indicator.code}
-                  value={indicator.code}
-                >
+                <option key={indicator.code} value={indicator.code}>
                   {indicator.name}
                 </option>
               ))}
@@ -338,17 +307,13 @@ export default function Compare() {
               Could not load comparison
             </h2>
 
-            <p className="mt-2 text-sm text-rose-200/80">
-              {error}
-            </p>
+            <p className="mt-2 text-sm text-rose-200/80">{error}</p>
           </section>
         )}
 
         {isLoadingComparison && (
           <section className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center">
-            <p className="text-sm text-slate-400">
-              Loading comparison data...
-            </p>
+            <p className="text-sm text-slate-400">Loading comparison data...</p>
           </section>
         )}
 
@@ -384,8 +349,8 @@ export default function Compare() {
                       </h2>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        Country comparison from 2000 onward
-                        · Unit: {unit || "not specified"}
+                        Country comparison from 2000 onward · Unit:{" "}
+                        {unit || "not specified"}
                       </p>
                     </div>
 
@@ -410,24 +375,12 @@ export default function Compare() {
                     <table className="w-full text-left text-sm text-slate-400">
                       <thead>
                         <tr className="border-b border-slate-800 text-xs uppercase text-slate-500">
-                          <th className="py-3 pr-4">
-                            Country
-                          </th>
-                          <th className="py-3 pr-4">
-                            Latest
-                          </th>
-                          <th className="py-3 pr-4">
-                            Min
-                          </th>
-                          <th className="py-3 pr-4">
-                            Max
-                          </th>
-                          <th className="py-3 pr-4">
-                            Average
-                          </th>
-                          <th className="py-3 pr-4">
-                            Obs.
-                          </th>
+                          <th className="py-3 pr-4">Country</th>
+                          <th className="py-3 pr-4">Latest</th>
+                          <th className="py-3 pr-4">Min</th>
+                          <th className="py-3 pr-4">Max</th>
+                          <th className="py-3 pr-4">Average</th>
+                          <th className="py-3 pr-4">Obs.</th>
                         </tr>
                       </thead>
 
@@ -438,17 +391,20 @@ export default function Compare() {
                             className="hover:bg-slate-950/70"
                           >
                             <td className="py-3 pr-4 font-medium text-slate-200">
-                              {row.country}
+                              <Link
+                                to={`/countries/${row.iso3_code}`}
+                                className="transition-colors hover:text-blue-300"
+                              >
+                                {row.country}
+                              </Link>
+
                               <span className="ml-2 text-xs text-slate-500">
                                 {row.iso3_code}
                               </span>
                             </td>
 
                             <td className="py-3 pr-4">
-                              {formatEconomicValue(
-                                row.latestValue,
-                                unit,
-                              )}
+                              {formatEconomicValue(row.latestValue, unit)}
                               {row.latestYear && (
                                 <span className="ml-1 text-xs text-slate-600">
                                   ({row.latestYear})
@@ -457,24 +413,15 @@ export default function Compare() {
                             </td>
 
                             <td className="py-3 pr-4">
-                              {formatEconomicValue(
-                                row.minimum,
-                                unit,
-                              )}
+                              {formatEconomicValue(row.minimum, unit)}
                             </td>
 
                             <td className="py-3 pr-4">
-                              {formatEconomicValue(
-                                row.maximum,
-                                unit,
-                              )}
+                              {formatEconomicValue(row.maximum, unit)}
                             </td>
 
                             <td className="py-3 pr-4">
-                              {formatEconomicValue(
-                                row.average,
-                                unit,
-                              )}
+                              {formatEconomicValue(row.average, unit)}
                             </td>
 
                             <td className="py-3 pr-4">
@@ -502,10 +449,7 @@ export default function Compare() {
 
                       <div className="mt-1 text-xl font-bold text-slate-100">
                         {bestLatest
-                          ? formatEconomicValue(
-                              bestLatest.latestValue,
-                              unit,
-                            )
+                          ? formatEconomicValue(bestLatest.latestValue, unit)
                           : "—"}
                       </div>
 
@@ -523,10 +467,7 @@ export default function Compare() {
 
                       <div className="mt-1 text-xl font-bold text-slate-100">
                         {weakestLatest
-                          ? formatEconomicValue(
-                              weakestLatest.latestValue,
-                              unit,
-                            )
+                          ? formatEconomicValue(weakestLatest.latestValue, unit)
                           : "—"}
                       </div>
 
@@ -545,9 +486,9 @@ export default function Compare() {
                   </h2>
 
                   <p className="mt-3 text-sm leading-6 text-slate-400">
-                    Comparisons use available World Bank observations.
-                    Some countries may have missing years depending on
-                    the selected indicator.
+                    Comparisons use available World Bank observations. Some
+                    countries may have missing years depending on the selected
+                    indicator.
                   </p>
                 </article>
               </aside>
